@@ -30,6 +30,12 @@ Ntupler::Ntupler(const edm::ParameterSet& iConfig):
   //electron_token_(consumes<edm::View<reco::GsfElectron>>(edm::InputTag("slimmedElectrons"))),
   pfcand_token_(consumes<edm::View<pat::PackedCandidate>>(edm::InputTag("packedPFCandidates"))),
   mcweight_token_(consumes<GenEventInfoProduct>(edm::InputTag("generator"))),
+  
+  //PREFIRING
+  prefweight_token(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProb"))),
+  prefweightup_token(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbUp"))),
+  prefweightdown_token(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbDown"))),
+
   hltPrescaleProvider_(iConfig, consumesCollector(), *this)
 {
   
@@ -65,9 +71,9 @@ Ntupler::Ntupler(const edm::ParameterSet& iConfig):
   std::string prefix;
   if (isInteractive==true){
     if(year==2017){
-      prefix="2017-JEC-JER/";}
+      prefix="/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/SlimmedNtuple/Ntupler/python/2017-JEC-JER/";}
     if(year==2018){
-      prefix="2018-JEC-JER/";}
+      prefix="/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/SlimmedNtuple/Ntupler/python/2018-JEC-JER/";}
   }
   else{
     prefix="";
@@ -284,7 +290,17 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<edm::View<pat::Muon> > muonHandle;
   iEvent.getByToken(muon_token_,muonHandle);
   int numMuLoose=0;
-  for (const pat::Muon &MuonIt : *muonHandle) { 
+  for (const pat::Muon &MuonIt : *muonHandle) {
+     auto track_ref = MuonIt.innerTrack();
+     //auto const& track_ref = MuonIt.innerTrack(); 
+
+     int n_tracker_layers = -1;
+     if ( track_ref.isNonnull() )
+        n_tracker_layers = MuonIt.innerTrack()->hitPattern().trackerLayersWithMeasurement();
+     else
+        n_tracker_layers = 0;
+
+    // int n_tracker_layers = track_ref.isNonnull() ? MuonIt.innerTrack()->hitPattern().trackerLayersWithMeasurement() : 0 ; 
     bool tightId=MuonIt.isTightMuon(*vtx);
     double iso = (MuonIt.pfIsolationR04().sumChargedHadronPt + max(0., MuonIt.pfIsolationR04().sumNeutralHadronEt + MuonIt.pfIsolationR04().sumPhotonEt - 0.5*MuonIt.pfIsolationR04().sumPUPt))/MuonIt.pt();
     if(tightId&&MuonIt.pt()>35&&fabs(MuonIt.eta())<2.4&&iso<0.1){
@@ -299,11 +315,39 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       (*muon_iso_).push_back(iso);
       (*muon_dxy_).push_back(fabs(MuonIt.muonBestTrack()->dxy(vtx->position())));
       (*muon_dz_).push_back(fabs(MuonIt.muonBestTrack()->dz(vtx->position())));
+      (*muon_trackerLayersWithMeasurement_).push_back(n_tracker_layers);
     }
     bool looseId=MuonIt.isLooseMuon();
     if(looseId&&MuonIt.pt()>20&&fabs(MuonIt.eta())<2.4&&iso<0.1){numMuLoose++;}
     
   }//end of looping over muons
+
+  //PREFIRING
+  if(year == 2017){
+     edm::Handle< double > theprefweight;
+     iEvent.getByToken(prefweight_token, theprefweight ) ;
+     double _prefiringweight =(*theprefweight);
+
+     edm::Handle< double > theprefweightup;
+     iEvent.getByToken(prefweightup_token, theprefweightup ) ;
+     double _prefiringweightup =(*theprefweightup);
+
+     edm::Handle< double > theprefweightdown;
+     iEvent.getByToken(prefweightdown_token, theprefweightdown ) ;
+     double _prefiringweightdown =(*theprefweightdown);
+
+     (*prefiring_weight_).push_back(_prefiringweight);
+     (*prefiring_weight_up_).push_back(_prefiringweightup);
+     (*prefiring_weight_down_).push_back(_prefiringweightdown);
+  } 
+  else {
+     double _prefiringweight = 1;
+     double _prefiringweightup = 1;
+     double _prefiringweightdown = 1;
+     (*prefiring_weight_).push_back(_prefiringweight);
+     (*prefiring_weight_up_).push_back(_prefiringweightup);
+     (*prefiring_weight_down_).push_back(_prefiringweightdown);
+  }
 
    //Get Electrons
    /*
@@ -328,6 +372,16 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
      //dxy_.push_back( theTrack->dxy( firstGoodVertex->position() ) );
      //bool passConvVeto = !ConversionTools::hasMatchedConversion(*ele,conversions_h,theBeamSpot->position());
 
+     //pat::Electron::userFloat("ecalTrkEnergyPostCorr") / pat::Electron::energy();
+     double corr_ele = (*electronHandle)[i].userFloat("ecalTrkEnergyPostCorr")/(*electronHandle)[i].energy();
+     double var_ecalTrkEnergyPostCorr = (*electronHandle)[i].userFloat("ecalTrkEnergyPostCorr");
+     double var_ecalTrkEnergyErrPostCorr = (*electronHandle)[i].userFloat("ecalTrkEnergyErrPostCorr");
+     double var_ecalTrkEnergyPreCorr = (*electronHandle)[i].userFloat("ecalTrkEnergyPreCorr");
+     double var_energyScaleUp = (*electronHandle)[i].userFloat("energyScaleUp");
+     double var_energyScaleDown = (*electronHandle)[i].userFloat("energyScaleDown");
+     double var_energySigmaUp = (*electronHandle)[i].userFloat("energySigmaUp");
+     double var_energySigmaDown = (*electronHandle)[i].userFloat("energySigmaDown");
+
      //bool isPassEleId = (*ele_id_decisions)[el];
      bool isPassEleId = el->electronID("cutBasedElectronID-Fall17-94X-V2-tight");
      //bool isPassEleId = el->isElectron("cutBasedElectronID-Fall17-94X-V2-tight");
@@ -336,16 +390,24 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
      //}
      
      if(isPassEleId&&el->pt()>40&&fabs(el->superCluster()->eta())<2.4){ 
-       (*electron_pt_).push_back(el->pt());
+       (*electron_pt_).push_back(el->pt()*corr_ele);
        (*electron_dxy_).push_back(fabs(el->gsfTrack()->dxy(vtx->position())));
        (*electron_dz_).push_back(fabs(el->gsfTrack()->dz(vtx->position())));
        (*electron_eta_).push_back(el->superCluster()->eta());
        (*electron_phi_).push_back(el->superCluster()->phi());
-       (*electron_px_).push_back(el->px());
-       (*electron_py_).push_back(el->py());
-       (*electron_pz_).push_back(el->pz());
-       (*electron_e_).push_back(el->energy());
+       (*electron_px_).push_back(el->px()*corr_ele);
+       (*electron_py_).push_back(el->py()*corr_ele);
+       (*electron_pz_).push_back(el->pz()*corr_ele);
+       (*electron_e_).push_back(el->energy()*corr_ele);
        (*electron_charge_).push_back(el->charge());
+       (*electron_corr_).push_back(corr_ele);
+       (*electron_ecalTrkEnPostCorr_).push_back(var_ecalTrkEnergyPostCorr);
+       (*electron_ecalTrkEnErrPostCorr_).push_back(var_ecalTrkEnergyErrPostCorr);
+       (*electron_ecalTrkEnPreCorr_).push_back(var_ecalTrkEnergyPreCorr);
+       (*electron_energyScaleUp_).push_back(var_energyScaleUp);
+       (*electron_energyScaleDown_).push_back(var_energyScaleDown);
+       (*electron_energySigmaUp_).push_back(var_energySigmaUp);
+       (*electron_energySigmaDown_).push_back(var_energySigmaDown);
      }
 
      //bool isPassEleId_veto = (*ele_id_decisions_veto)[el];
@@ -419,9 +481,14 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
        double tau2         = (*jets)[ijet].userFloat("NjettinessAK8CHS:tau2");
        
        double C_JER=1.0;
+       double C_JER_UP=1.0;
+       double C_JER_DOWN=1.0;
        if(isMC == true)
 	 {
-	   C_JER=calculateJERFactor(jet->pt(),jet->eta(),jet->phi(),jet->energy(),rho,true);
+	   auto vec_C_JER=calculateJERFactor(jet->pt(),jet->eta(),jet->phi(),jet->energy(),rho,true);
+	   C_JER = vec_C_JER[0]; 
+	   C_JER_UP = vec_C_JER[1]; 
+	   C_JER_DOWN = vec_C_JER[2]; 
 	 }//end of if MC
        
 
@@ -430,6 +497,9 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 bool isLepton=isJetLeptonAK8(jet->eta(),jet->phi());
 	 if(!isLepton){
 	   //(*jet_pt_).push_back(jet->pt());
+	   (*jet_cjer_).push_back(C_JER);
+	   (*jet_cjer_up_).push_back(C_JER_UP);
+	   (*jet_cjer_down_).push_back(C_JER_DOWN);
 	   (*jet_pt_).push_back(C_JER*jet->pt());
 	   (*jet_phi_).push_back(jet->phi());
 	   (*jet_eta_).push_back(jet->eta());
@@ -497,13 +567,23 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    edm::Handle<pat::METCollection> patMET; // PAT      
    iEvent.getByToken(met_token_,patMET);
    const pat::METRef MET(patMET, 0);
-   *met_=MET->caloMETPt();
-   //*met_=patMET.corPt();
+   *calo_met_=MET->caloMETPt();
+   *met_=MET->corPt();
    *met_x_=MET->corPx();
    *met_y_=MET->corPy();
    double METPt=MET->corPt();
    double METphi=MET->phi();
    *met_phi_=MET->phi();
+
+   *met_ptJER_Up_ = MET->shiftedPt(pat::MET::JetResUp);
+   *met_ptJER_Down_ = MET->shiftedPt(pat::MET::JetResDown);
+   *met_phiJER_Up_ = MET->shiftedPhi(pat::MET::JetResUp);
+   *met_phiJER_Down_ = MET->shiftedPhi(pat::MET::JetResDown);
+   *met_ptJES_Up_ = MET->shiftedPt(pat::MET::JetEnUp);
+   *met_ptJES_Down_ = MET->shiftedPt(pat::MET::JetEnDown);
+   *met_phiJES_Up_ = MET->shiftedPhi(pat::MET::JetEnUp);
+   *met_phiJES_Down_ = MET->shiftedPhi(pat::MET::JetEnDown);
+
 
    //Look at proton tracks
    //if(isMC==false||isSignalMC==true||isMC==true){
@@ -715,6 +795,43 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	       Wminus=TLorentzVector(mcIter->px(),mcIter->py(),mcIter->pz(),mcIter->energy());
 	     }
 	   }
+	 if((fabs(mcIter->pdgId()) == 13) && (mcIter->pt() > 20) && (mcIter->status() == 1))
+	 //if((mcIter->pdgId() == 2212) && (mcIter->status() == 1))
+	   {
+	     double thept = mcIter->pt();
+	     double theeta = mcIter->eta();
+	     double thephi = mcIter->phi();
+	     double thecharge = mcIter->charge();
+	     double themass = mcIter->mass();
+	     double theenergy= mcIter->energy();
+	     //double vx = mcIter->vx(), vy = mcIter->vy(), vz = mcIter->vz();
+	     //cout<<"vx: "<<vx<<", "<<"vy: "<<vy<<", "<<"vz: "<<vz<<endl;
+	     (*gen_muon_pt_).push_back(thept);
+	     (*gen_muon_eta_).push_back(theeta);
+	     (*gen_muon_phi_).push_back(thephi);
+	     (*gen_muon_charge_).push_back(thecharge);
+	     (*gen_muon_mass_).push_back(themass);
+	     (*gen_muon_energy_).push_back(theenergy);
+	   }
+
+	 if((fabs(mcIter->pdgId()) == 11) && (mcIter->pt() > 20) && (mcIter->status() == 1))
+	 //if((mcIter->pdgId() == 2212) && (mcIter->status() == 1))
+	   {
+	     double thept = mcIter->pt();
+	     double theeta = mcIter->eta();
+	     double thephi = mcIter->phi();
+	     double thecharge = mcIter->charge();
+	     double themass = mcIter->mass();
+	     double theenergy= mcIter->energy();
+	     //double vx = mcIter->vx(), vy = mcIter->vy(), vz = mcIter->vz();
+	     //cout<<"vx: "<<vx<<", "<<"vy: "<<vy<<", "<<"vz: "<<vz<<endl;
+	     (*gen_electron_pt_).push_back(thept);
+	     (*gen_electron_eta_).push_back(theeta);
+	     (*gen_electron_phi_).push_back(thephi);
+	     (*gen_electron_charge_).push_back(thecharge);
+	     (*gen_electron_mass_).push_back(themass);
+	     (*gen_electron_energy_).push_back(theenergy);
+	   }
 
 	 if((mcIter->pdgId() == 2212) && (fabs(mcIter->pz()) > 650) && (mcIter->status() == 1))
 	 //if((mcIter->pdgId() == 2212) && (mcIter->status() == 1))
@@ -764,7 +881,8 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
        const edm::Ptr<pat::Jet> jet_ak4 = jetColl->ptrAt(i);
        if((*jet_eta_).size()==1){
 	 if(isMC==true){
-	   C_JER_AK4=calculateJERFactor(jet_ak4->pt(),jet_ak4->eta(),jet_ak4->phi(),jet_ak4->energy(),rho,false);}
+	   auto vec_C_JER_AK4=calculateJERFactor(jet_ak4->pt(),jet_ak4->eta(),jet_ak4->phi(),jet_ak4->energy(),rho,false);
+      C_JER_AK4 = vec_C_JER_AK4[0];}
 	 //cout<<"AK4 jet pt: "<<jet->pt()<<endl;
 	 if((jet_ak4->pt()*C_JER_AK4)>30&&fabs(jet_ak4->eta())<2.4){
 	   bool isLepton=isJetLepton(jet_ak4->eta(),jet_ak4->phi());
@@ -917,6 +1035,11 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    (*muon_iso_).clear();
    (*muon_dxy_).clear();
    (*muon_dz_).clear();
+   (*muon_trackerLayersWithMeasurement_).clear();
+
+   (*prefiring_weight_).clear();
+   (*prefiring_weight_up_).clear();
+   (*prefiring_weight_down_).clear();
 
    (*electron_pt_).clear();
    (*electron_eta_).clear();
@@ -928,8 +1051,19 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    (*electron_pz_).clear();
    (*electron_e_).clear();
    (*electron_charge_).clear();
+   (*electron_corr_).clear();
+   (*electron_ecalTrkEnPostCorr_).clear();
+   (*electron_ecalTrkEnErrPostCorr_).clear();
+   (*electron_ecalTrkEnPreCorr_).clear();
+   (*electron_energyScaleUp_).clear();
+   (*electron_energyScaleDown_).clear();
+   (*electron_energySigmaUp_).clear();
+   (*electron_energySigmaDown_).clear();
 
 
+   (*jet_cjer_).clear();
+   (*jet_cjer_up_).clear();
+   (*jet_cjer_down_).clear();
    (*jet_pt_).clear();
    (*jet_px_).clear();
    (*jet_py_).clear();
@@ -953,6 +1087,20 @@ Ntupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    (*gen_W_pt_).clear();
    (*gen_W_charge_).clear();
+
+   (*gen_muon_pt_).clear();
+   (*gen_muon_eta_).clear();
+   (*gen_muon_phi_).clear();
+   (*gen_muon_charge_).clear();
+   (*gen_muon_mass_).clear();
+   (*gen_muon_energy_).clear();
+
+   (*gen_electron_pt_).clear();
+   (*gen_electron_eta_).clear();
+   (*gen_electron_phi_).clear();
+   (*gen_electron_charge_).clear();
+   (*gen_electron_mass_).clear();
+   (*gen_electron_energy_).clear();
 
    (*gen_proton_px_).clear();
    (*gen_proton_py_).clear();
@@ -1040,9 +1188,11 @@ bool Ntupler::isJetLepton(double jet_eta, double jet_phi)
 
 }
 
-double Ntupler::calculateJERFactor(double jet_pt,double jet_eta,double jet_phi,double jet_energy,double rho,bool isAK8)
+std::vector<double> Ntupler::calculateJERFactor(double jet_pt,double jet_eta,double jet_phi,double jet_energy,double rho,bool isAK8)
 {
   double C_JER=1.;
+  double C_JER_UP=1.;
+  double C_JER_DOWN=1.;
   JME::JetResolution resolution;
   JME::JetResolutionScaleFactor resolution_sf;
   if (isAK8 ==true){
@@ -1095,13 +1245,27 @@ double Ntupler::calculateJERFactor(double jet_pt,double jet_eta,double jet_phi,d
 
   }
   
-  if(matchedgen == 1) { C_JER = 1 + (jer_sf -1 )*( (recojtmp.Pt() - (*gen_jet_pt_).at(indmatchedgen)) / recojtmp.Pt() );
-    if(C_JER < 0) {C_JER = 0;}
+  if(matchedgen == 1) { 
+     C_JER = 1 + (jer_sf -1 )*( (recojtmp.Pt() - (*gen_jet_pt_).at(indmatchedgen)) / recojtmp.Pt() );
+     C_JER_UP = 1 + (jer_sf_up -1 )*( (recojtmp.Pt() - (*gen_jet_pt_).at(indmatchedgen)) / recojtmp.Pt() );
+     C_JER_DOWN = 1 + (jer_sf_down -1 )*( (recojtmp.Pt() - (*gen_jet_pt_).at(indmatchedgen)) / recojtmp.Pt() );
+     if(C_JER < 0) C_JER = 0;
+     if(C_JER_UP < 0) C_JER_UP = 0;
+     if(C_JER_DOWN < 0) C_JER_DOWN = 0;
   }
-  else       
-    {	   C_JER = 1 + randomSrc.Gaus(0, jer_res)*(sqrt(max(jer_sf*jer_sf - 1., 0.)));	 }
-  
-  return C_JER;
+  else {	   
+     C_JER = 1 + randomSrc.Gaus(0, jer_res)*(sqrt(max(jer_sf*jer_sf - 1., 0.)));	 
+     C_JER_UP = 1 + randomSrc.Gaus(0, jer_res)*(sqrt(max(jer_sf_up*jer_sf_up - 1., 0.)));	 
+     C_JER_DOWN = 1 + randomSrc.Gaus(0, jer_res)*(sqrt(max(jer_sf_down*jer_sf_down - 1., 0.)));	 
+  }
+ 
+  std::vector<double> vec_C_JER;
+  vec_C_JER.resize(3);
+  vec_C_JER[0] = C_JER;
+  vec_C_JER[1] = C_JER_UP;
+  vec_C_JER[2] = C_JER_DOWN;
+
+  return vec_C_JER;
 
 
 }
@@ -1126,6 +1290,11 @@ Ntupler::beginJob()
   muon_iso_ = new std::vector<float>;
   muon_dxy_ = new std::vector<float>;
   muon_dz_ = new std::vector<float>;
+  muon_trackerLayersWithMeasurement_ = new std::vector<float>;
+
+  prefiring_weight_ = new std::vector<float>;
+  prefiring_weight_up_ = new std::vector<float>;
+  prefiring_weight_down_ = new std::vector<float>;
 
   electron_pt_ = new std::vector<float>;
   electron_eta_ = new std::vector<float>;
@@ -1137,11 +1306,28 @@ Ntupler::beginJob()
   electron_pz_ = new std::vector<float>;
   electron_e_ = new std::vector<float>;
   electron_charge_ = new std::vector<float>;
+  electron_corr_ = new std::vector<float>;
+  electron_ecalTrkEnPostCorr_ = new std::vector<float>;
+  electron_ecalTrkEnErrPostCorr_ = new std::vector<float>;
+  electron_ecalTrkEnPreCorr_ = new std::vector<float>;
+  electron_energyScaleUp_ = new std::vector<float>;
+  electron_energyScaleDown_ = new std::vector<float>;
+  electron_energySigmaUp_ = new std::vector<float>;
+  electron_energySigmaDown_ = new std::vector<float>;
 
+  calo_met_ = new float;
   met_ = new float;
   met_x_ = new float;
   met_y_ = new float;
   met_phi_ = new float;
+  met_ptJER_Up_ = new float;
+  met_ptJER_Down_ = new float;
+  met_phiJER_Up_ = new float;
+  met_phiJER_Down_ = new float;
+  met_ptJES_Up_ = new float;
+  met_ptJES_Down_ = new float;
+  met_phiJES_Up_ = new float;
+  met_phiJES_Down_ = new float;
   pfcand_nextracks_ = new int;
   pfcand_nextracks_noDRl_ = new int;
   num_bjets_ak8_ = new int;
@@ -1161,6 +1347,9 @@ Ntupler::beginJob()
 
   //ecalBadCalFilter_ = new bool;
 
+  jet_cjer_ = new std::vector<float>;
+  jet_cjer_up_ = new std::vector<float>;
+  jet_cjer_down_ = new std::vector<float>;
   jet_pt_ = new std::vector<float>;
   jet_px_ = new std::vector<float>;
   jet_py_ = new std::vector<float>;
@@ -1184,6 +1373,20 @@ Ntupler::beginJob()
 
   gen_W_pt_ = new std::vector<float>;
   gen_W_charge_ = new std::vector<float>;
+
+  gen_muon_pt_ = new std::vector<float>;
+  gen_muon_eta_ = new std::vector<float>;
+  gen_muon_phi_ = new std::vector<float>;
+  gen_muon_charge_ = new std::vector<float>;
+  gen_muon_mass_ = new std::vector<float>;
+  gen_muon_energy_ = new std::vector<float>;
+
+  gen_electron_pt_ = new std::vector<float>;
+  gen_electron_eta_ = new std::vector<float>;
+  gen_electron_phi_ = new std::vector<float>;
+  gen_electron_charge_ = new std::vector<float>;
+  gen_electron_mass_ = new std::vector<float>;
+  gen_electron_energy_ = new std::vector<float>;
 
   gen_proton_px_ = new std::vector<float>;
   gen_proton_py_ = new std::vector<float>;
@@ -1239,6 +1442,10 @@ Ntupler::beginJob()
   tree_->Branch("muon_iso",&muon_iso_);
   tree_->Branch("muon_dxy",&muon_dxy_);
   tree_->Branch("muon_dz",&muon_dz_);
+  tree_->Branch("muon_trackerLayersWithMeasurement",&muon_trackerLayersWithMeasurement_);
+  tree_->Branch("prefiring_weight",&prefiring_weight_);
+  tree_->Branch("prefiring_weight_up",&prefiring_weight_up_);
+  tree_->Branch("prefiring_weight_down",&prefiring_weight_down_);
   tree_->Branch("electron_pt",&electron_pt_);
   tree_->Branch("electron_eta",&electron_eta_);
   tree_->Branch("electron_phi",&electron_phi_);
@@ -1249,10 +1456,27 @@ Ntupler::beginJob()
   tree_->Branch("electron_pz",&electron_pz_);
   tree_->Branch("electron_e",&electron_e_);
   tree_->Branch("electron_charge",&electron_charge_);
+  tree_->Branch("electron_corr",&electron_corr_);
+  tree_->Branch("electron_ecalTrkEnPostCorr",&electron_ecalTrkEnPostCorr_);
+  tree_->Branch("electron_ecalTrkEnErrPostCorr",&electron_ecalTrkEnErrPostCorr_);
+  tree_->Branch("electron_ecalTrkEnPreCorr",&electron_ecalTrkEnPreCorr_);
+  tree_->Branch("electron_energyScaleUp",&electron_energyScaleUp_);
+  tree_->Branch("electron_energyScaleDown",&electron_energyScaleDown_);
+  tree_->Branch("electron_energySigmaUp",&electron_energySigmaUp_);
+  tree_->Branch("electron_energySigmaDown",&electron_energySigmaDown_);
+  tree_->Branch("calo_met",calo_met_,"calo_met/f");
   tree_->Branch("met",met_,"met/f");
   tree_->Branch("met_x",met_x_,"met_x/f");
   tree_->Branch("met_y",met_y_,"met_y/f");
   tree_->Branch("met_phi",met_phi_,"met_phi/f");
+  tree_->Branch("met_ptJER_Up",met_ptJER_Up_,"met_ptJER_Up/f");
+  tree_->Branch("met_ptJER_Down",met_ptJER_Down_,"met_ptJER_Down/f");
+  tree_->Branch("met_phiJER_Up",met_phiJER_Up_,"met_phiJER_Up/f");
+  tree_->Branch("met_phiJER_Down",met_phiJER_Down_,"met_phiJER_Down/f");
+  tree_->Branch("met_ptJES_Up",met_ptJES_Up_,"met_ptJES_Up/f");
+  tree_->Branch("met_ptJES_Down",met_ptJES_Down_,"met_ptJES_Down/f");
+  tree_->Branch("met_phiJES_Up",met_phiJES_Up_,"met_phiJES_Up/f");
+  tree_->Branch("met_phiJES_Down",met_phiJES_Down_,"met_phiJES_Down/f");
   tree_->Branch("pfcand_nextracks",pfcand_nextracks_,"pfcand_nextracks/I");
   tree_->Branch("pfcand_nextracks_noDRl",pfcand_nextracks_noDRl_,"pfcand_nextracks_noDRl/I");
   tree_->Branch("num_bjets_ak8",num_bjets_ak8_,"num_bjets_ak8/I");
@@ -1269,6 +1493,9 @@ Ntupler::beginJob()
   tree_->Branch("WLeptonicPhi",WLeptonicPhi_,"WLeptonicPhi/f");
   tree_->Branch("WLeptonicEta",WLeptonicEta_,"WLeptonicEta/f");
 
+  tree_->Branch("jet_cjer",&jet_cjer_);
+  tree_->Branch("jet_cjer_up",&jet_cjer_up_);
+  tree_->Branch("jet_cjer_down",&jet_cjer_down_);
   tree_->Branch("jet_pt",&jet_pt_);
   tree_->Branch("jet_px",&jet_px_);
   tree_->Branch("jet_py",&jet_py_);
@@ -1291,6 +1518,18 @@ Ntupler::beginJob()
   tree_->Branch("hlt",&hlt_);
   tree_->Branch("gen_W_pt",&gen_W_pt_);
   tree_->Branch("gen_W_charge",&gen_W_charge_);
+  tree_->Branch("gen_muon_pt",&gen_muon_pt_);
+  tree_->Branch("gen_muon_eta",&gen_muon_eta_);
+  tree_->Branch("gen_muon_phi",&gen_muon_phi_);
+  tree_->Branch("gen_muon_charge",&gen_muon_charge_);
+  tree_->Branch("gen_muon_mass",&gen_muon_mass_);
+  tree_->Branch("gen_muon_energy",&gen_muon_energy_);
+  tree_->Branch("gen_electron_pt",&gen_electron_pt_);
+  tree_->Branch("gen_electron_eta",&gen_electron_eta_);
+  tree_->Branch("gen_electron_phi",&gen_electron_phi_);
+  tree_->Branch("gen_electron_charge",&gen_electron_charge_);
+  tree_->Branch("gen_electron_mass",&gen_electron_mass_);
+  tree_->Branch("gen_electron_energy",&gen_electron_energy_);
   tree_->Branch("gen_proton_px",&gen_proton_px_);
   tree_->Branch("gen_proton_py",&gen_proton_py_);
   tree_->Branch("gen_proton_pz",&gen_proton_pz_);
@@ -1348,6 +1587,11 @@ Ntupler::endJob()
   delete muon_iso_;
   delete muon_dxy_;
   delete muon_dz_;
+  delete muon_trackerLayersWithMeasurement_;
+
+  delete prefiring_weight_;
+  delete prefiring_weight_up_;
+  delete prefiring_weight_down_;
 
   delete electron_pt_;
   delete electron_eta_;
@@ -1359,11 +1603,28 @@ Ntupler::endJob()
   delete electron_pz_;
   delete electron_e_;
   delete electron_charge_;
+  delete electron_corr_;
+  delete electron_ecalTrkEnPostCorr_;
+  delete electron_ecalTrkEnErrPostCorr_;
+  delete electron_ecalTrkEnPreCorr_;
+  delete electron_energyScaleUp_;
+  delete electron_energyScaleDown_;
+  delete electron_energySigmaUp_;
+  delete electron_energySigmaDown_;
 
+  delete calo_met_;
   delete met_;
   delete met_x_;
   delete met_y_;
   delete met_phi_;
+  delete met_ptJER_Up_;
+  delete met_ptJER_Down_;
+  delete met_phiJER_Up_;
+  delete met_phiJER_Down_;
+  delete met_ptJES_Up_;
+  delete met_ptJES_Down_;
+  delete met_phiJES_Up_;
+  delete met_phiJES_Down_;
   delete num_bjets_ak8_;
   delete num_bjets_ak4_;
   delete num_jets_ak4_;
@@ -1392,6 +1653,9 @@ Ntupler::endJob()
   delete WLeptonicPhi_;
   delete WLeptonicEta_;
 
+  delete jet_cjer_;
+  delete jet_cjer_up_;
+  delete jet_cjer_down_;
   delete jet_pt_;
   delete jet_px_;
   delete jet_py_;
@@ -1431,6 +1695,18 @@ Ntupler::endJob()
   
   delete gen_W_pt_;
   delete gen_W_charge_;
+  delete gen_muon_pt_;
+  delete gen_muon_eta_;
+  delete gen_muon_phi_;
+  delete gen_muon_charge_;
+  delete gen_muon_mass_;
+  delete gen_muon_energy_;
+  delete gen_electron_pt_;
+  delete gen_electron_eta_;
+  delete gen_electron_phi_;
+  delete gen_electron_charge_;
+  delete gen_electron_mass_;
+  delete gen_electron_energy_;
   delete gen_proton_px_;
   delete gen_proton_py_;
   delete gen_proton_pz_;

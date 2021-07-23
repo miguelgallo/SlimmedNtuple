@@ -1,9 +1,35 @@
+import sys
 import FWCore.ParameterSet.Config as cms
 #process = cms.Process("Demo")
 #process = cms.Process("CTPPSTestProtonReconstruction", eras.ctpps_2016)
-from Configuration.StandardSequences.Eras import eras
-#from Configuration.Eras.Modifier_ctpps_2016_cff import ctpps_2016
-process = cms.Process("Demo", eras.Run2_2017)
+#from Configuration.StandardSequences.Eras import eras
+#process = cms.Process("Demo", eras.Run2_2017)
+
+Run2_2017=True
+MC=True
+DATA=False
+preTS2=True
+postTS2=False
+if Run2_2017 and MC and preTS2:
+  sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2017_preTS2/')
+  import direct_simu_reco_cff as profile
+  process = cms.Process('CTPPSTest', profile.era)
+  profile.LoadConfig(process)
+  profile.config.SetDefaults(process)
+  process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+  process.load("Validation.CTPPS.simu_config.year_2017_preTS2_cff")
+  process.load("direct_simu_reco_cff")
+elif Run2_2017 and MC and postTS2:
+  sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2017_postTS2/')
+  import direct_simu_reco_cff as profile
+  process = cms.Process('CTPPSTest', profile.era)
+  profile.LoadConfig(process)
+  profile.config.SetDefaults(process)
+  process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+  process.load("Validation.CTPPS.simu_config.year_2017_postTS2_cff")
+  process.load("direct_simu_reco_cff")
+else:
+  process = cms.Process("CTPPSTestProtonReconstruction", eras.ctpps_2017)
 
 #process.Timing = cms.Service("Timing",
 #  summaryOnly = cms.untracked.bool(False),
@@ -15,43 +41,42 @@ process = cms.Process("Demo", eras.Run2_2017)
 #)
 
 #Details for this here https://twiki.cern.ch/twiki/bin/view/CMSPublic/CRAB3ConfigurationFile
-from FWCore.ParameterSet.VarParsing import VarParsing
-options = VarParsing ('analysis')
-options.register('pileupName',
-                 #'WJetsToLNu_2J_TuneCP5_13TeV_amcatnloFXFX_pythia8',
-                 'GGToWWToJJMuNu_PtL_15_13TeV_fpmc_herwig6',
-                 VarParsing.multiplicity.singleton,
-                 VarParsing.varType.string,
-                 "Name for pileup sample")
-options.register('era',
-                 'C',
-                 VarParsing.multiplicity.singleton,
-                 VarParsing.varType.string,
-                 "Era")
-options.register('interactive',
-                 1,
-                 VarParsing.multiplicity.singleton,
-                 VarParsing.varType.int,
-                 "Determines whether it is an interactive or crab run")
-options.parseArguments()
+#from FWCore.ParameterSet.VarParsing import VarParsing
+#options = VarParsing ('analysis')
+#options.register('pileupName',
+#                 'WJetsToLNu_2J_TuneCP5_13TeV_amcatnloFXFX_pythia8',
+#                 VarParsing.multiplicity.singleton,
+#                 VarParsing.varType.string,
+#                 "Name for pileup sample")
+#options.register('era',
+#                 'C',
+#                 VarParsing.multiplicity.singleton,
+#                 VarParsing.varType.string,
+#                 "Era")
+#options.register('interactive',
+#                 1,
+#                 VarParsing.multiplicity.singleton,
+#                 VarParsing.varType.int,
+#                 "Determines whether it is an interactive or crab run")
+#options.parseArguments()
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.threshold = ''
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(3000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2000) )
+#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
-MC=True
 if MC:
   process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
       #This file below is from /GGToWW_bSM-A0W1e-6_13TeV-fpmc-herwig6/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v2/MINIAODSIM
       #"file:/home/users/rebassoo/work/2019_07_02_JanRecent-2ndTry/CMSSW_10_6_0/src/test-Finn/062366B6-DF2B-E911-BB28-C45444922958.root"
       #"root://cms-xrd-global.cern.ch//store/mc/RunIIFall17MiniAODv2/TTJets_TuneCP5_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/10000/4C6E31C1-1742-E811-9CE3-002590491B22.root"
-      #"root://cms-xrd-global.cern.ch//store/mc/RunIIFall17MiniAODv2/WW_TuneCP5_13TeV-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/70000/7A3A16D3-9942-E811-9A3D-0025905A60AA.root"
       #"root://cms-xrd-global.cern.ch//store/mc/RunIIFall17MiniAODv2/TTJets_TuneCP5_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/FE7ABAEB-4A42-E811-87A3-0CC47AD98D26.root"
-      "root://cms-xrd-global.cern.ch///store/mc/RunIIFall17MiniAODv2/GGToWWToJJMuNu_PtL-15_13TeV-fpmc-herwig6/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/80000/4EA38296-3011-E911-BC1D-FA163E5CF99B.root"
       #'root://cms-xrd-global.cern.ch//store/mc/RunIIFall17MiniAOD/WJetsToLNu_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PU2017_94X_mc2017_realistic_v11-v1/100000/0299C20A-7736-E811-ABC8-008CFAE453D8.root'
+      #"root://cms-xrd-global.cern.ch//store/mc/RunIISummer19UL17MiniAODv2/TTJets_TuneCP5_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/106X_mc2017_realistic_v9-v1/260000/00BCF6C2-D719-184F-9CEF-EE252E6F37BD.root"
+      "root://cms-xrd-global.cern.ch//store/mc/RunIISummer20UL17MiniAODv2/TTJets_TuneCP5_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/106X_mc2017_realistic_v9-v2/120000/00BDA6DC-2D12-6D45-B837-9D7C71AB9CDB.root"
     )
   )
 
@@ -59,11 +84,11 @@ if MC:
 if not MC:
   process.source = cms.Source("PoolSource",
       fileNames = cms.untracked.vstring(
-        #'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/MINIAOD/31Mar2018-v1/30000/EA6122AF-1137-E811-B552-FA163E28D344.root'
+        'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/MINIAOD/31Mar2018-v1/30000/EA6122AF-1137-E811-B552-FA163E28D344.root'
         #'file:EA6122AF-1137-E811-B552-FA163E28D344.root'
         #'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/MINIAOD/31Mar2018-v1/30000/34D2D750-5037-E811-B6AA-FA163E516F5B.root'
         #'root://cms-xrd-global.cern.ch//store/mc/RunIIFall17MiniAOD/WJetsToLNu_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PU2017_94X_mc2017_realistic_v11-v1/100000/0299C20A-7736-E811-ABC8-008CFAE453D8.root'
-        'root://cmsxrootd.fnal.gov//store/mc/RunIIFall17MiniAODv2/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/10000/B4005649-E955-E811-BE7B-0CC47A7C353E.root'
+        #'root://cmsxrootd.fnal.gov//store/mc/RunIIFall17MiniAODv2/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/10000/B4005649-E955-E811-BE7B-0CC47A7C353E.root'
         #'root://cmsxrootd.fnal.gov//store/mc/RunIIFall17MiniAODv2/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/10000/00469E05-E055-E811-807F-008CFAF7174A.root'
       ),
       secondaryFileNames = cms.untracked.vstring(
@@ -78,17 +103,43 @@ if not MC:
         'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/AOD/17Nov2017-v1/60002/944EA579-FAD8-E711-BD8B-02163E014737.root',
         'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/AOD/17Nov2017-v1/60002/EA4A4045-F6D8-E711-A4D5-02163E01A35D.root',
         'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/AOD/17Nov2017-v1/60002/F03EBC89-FAD8-E711-BCB3-02163E011A7C.root'
-      ),
-      skipEvents=cms.untracked.uint32(2000)
+      )#,
+      #skipEvents=cms.untracked.uint32(2000)
   )
 
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
+process.load("Configuration.Geometry.GeometryRecoDB_cff")
+process.load("Configuration.StandardSequences.Services_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+process.load("Geometry.CaloEventSetup.CaloTowerConstituents_cfi")
 process.load('Configuration.StandardSequences.GeometryDB_cff')
 
 process.load("SlimmedNtuple.Ntupler.CfiFile_cfi")
 process.load("SlimmedNtuple.Ntupler.HLTFilter_cfi")
 process.hltFilter.TriggerResultsTag = cms.InputTag("TriggerResults","","HLT")
 process.load("SlimmedNtuple.Ntupler.METFilter_cfi")
+
+#from HLTrigger.HLTfilters.hltHighLevel_cfi import *
+#process.hltFilter = copy.deepcopy(hltHighLevel)
+#process.hltFilter.TriggerResultsTag = cms.InputTag("TriggerResults","","HLT")
+#process.hltFilter.HLTPaths = ['HLT_Ele35_WPTight_Gsf_v*', 'HLT_Ele32_WPTight_Gsf_v*', 'HLT_IsoMu27_v*','HLT_IsoMu24_v*']
+#process.hltFilter.throw = cms.bool(False)
+#process.hltFilter.andOr = cms.bool(True) # how to deal with multiple triggers: True (OR) accept if ANY is true, False (AND) accept if ALL are true
+
+#process.METFilter = copy.deepcopy(hltHighLevel) #HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.clone()
+#if MC:
+#   process.METFilter.TriggerResultsTag =  cms.InputTag("TriggerResults","","PAT") # cms.InputTag("TriggerResults","","RECO")
+#   process.METFilter.HLTPaths = ['Flag_goodVertices','Flag_HBHENoiseFilter','Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter','Flag_BadPFMuonFilter','Flag_BadChargedCandidateFilter']
+#
+#else:
+#   process.METFilter.TriggerResultsTag =  cms.InputTag("TriggerResults","","RECO")
+#   process.METFilter.HLTPaths = ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter','Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter','Flag_BadPFMuonFilter','Flag_BadChargedCandidateFilter','Flag_eeBadScFilter'] #MC
+#
+#   process.METFilter.throw = cms.bool(False) # throw exception on unknown path names
+#   process.METFilter.andOr = cms.bool(False) # how to deal with multiple triggers: True (OR) accept if ANY is true, False (AND) accept if ALL are true
+#   # Filters from here: https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
+#   # MET filter recommendations will be updated for UltraLegacy datasets. The filters are currently under review and it is likely that the recommendations for ECAL related filters will change. Updates recommendations to be released as soon as they are available.
+
 
 #process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 #from Configuration.AlCa.GlobalTag import GlobalTag
@@ -104,11 +155,15 @@ process.load("RecoCTPPS.Configuration.recoCTPPS_cff")
 
 
 # remove locally-defined conditions -> consume conditions from GT
-del process.ctppsOpticalFunctionsESSource
-del process.esPreferLocalOptics
+#del process.ctppsOpticalFunctionsESSource
+#del process.esPreferLocalOptics
 
-del process.ctppsRPAlignmentCorrectionsDataESSourceXML
-del process.esPreferLocalAlignment
+#del process.ctppsRPAlignmentCorrectionsDataESSourceXML
+#del process.esPreferLocalAlignment
+
+process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
+        beamDivergenceVtxGenerator = cms.PSet(initialSeed =cms.untracked.uint32(849))
+        )
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
@@ -116,51 +171,21 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 # define global tag (for LHC data reconstruction)
 if not MC:
   process.GlobalTag = GlobalTag(process.GlobalTag, "106X_dataRun2_v11")
+  #process.GlobalTag = GlobalTag(process.GlobalTag, "106X_dataRun2_v32")
 
 # conditions for simu are not DB, load them from local sources
 if MC:
   # load base settings
-  process.load("direct_simu_reco_cff")
 
   #process.GlobalTag = GlobalTag(process.GlobalTag, "94X_mc2017_realistic_v17")
-  process.GlobalTag = GlobalTag(process.GlobalTag, "106X_mc2017_realistic_v6")
+  process.GlobalTag = GlobalTag(process.GlobalTag, "106X_mc2017_realistic_v8")
 
   # update settings of beam-smearing module
   process.beamDivergenceVtxGenerator.src = cms.InputTag("")
   process.beamDivergenceVtxGenerator.srcGenParticle = cms.VInputTag(
-    cms.InputTag("genPUProtons", "genPUProtons")#,
-    #cms.InputTag("prunedGenParticles")
+    #cms.InputTag("genPUProtons", "genPUProtons"), (?)
+    cms.InputTag("prunedGenParticles")
   )
-
-  # change LS often - to allow changes of ES data
-  #process.source.numberEventsInLuminosityBlock = cms.untracked.uint32(10)
-
-  # override LHCInfo source
-  process.load("CalibPPS.ESProducers.ctppsLHCInfoRandomXangleESSource_cfi")
-  process.ctppsLHCInfoRandomXangleESSource.generateEveryNEvents = 1
-  process.ctppsLHCInfoRandomXangleESSource.xangleHistogramFile = "xangle_hist.root"
-  process.ctppsLHCInfoRandomXangleESSource.xangleHistogramObject = "h_xangle"
-  process.ctppsLHCInfoRandomXangleESSource.beamEnergy = 6500.
-  process.ctppsLHCInfoRandomXangleESSource.betaStar = 0.40
-  process.esPreferLHCInfo = cms.ESPrefer("CTPPSLHCInfoRandomXangleESSource", "ctppsLHCInfoRandomXangleESSource")
-
-  # override beam-parameter source
-  process.load("CalibPPS.ESProducers.ctppsBeamParametersFromLHCInfoESSource_cfi")
-  process.ctppsBeamParametersFromLHCInfoESSource.beamDivX45 = process.ctppsBeamParametersESSource.beamDivX45
-  process.ctppsBeamParametersFromLHCInfoESSource.beamDivX56 = process.ctppsBeamParametersESSource.beamDivX56
-  process.ctppsBeamParametersFromLHCInfoESSource.beamDivY45 = process.ctppsBeamParametersESSource.beamDivY45
-  process.ctppsBeamParametersFromLHCInfoESSource.beamDivY56 = process.ctppsBeamParametersESSource.beamDivY56
-
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxOffsetX45 = process.ctppsBeamParametersESSource.vtxOffsetX45
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxOffsetX56 = process.ctppsBeamParametersESSource.vtxOffsetX56
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxOffsetY45 = process.ctppsBeamParametersESSource.vtxOffsetY45
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxOffsetY56 = process.ctppsBeamParametersESSource.vtxOffsetY56
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxOffsetZ45 = process.ctppsBeamParametersESSource.vtxOffsetZ45
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxOffsetZ56 = process.ctppsBeamParametersESSource.vtxOffsetZ56
-
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxStddevX = process.ctppsBeamParametersESSource.vtxStddevX
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxStddevY = process.ctppsBeamParametersESSource.vtxStddevY
-  process.ctppsBeamParametersFromLHCInfoESSource.vtxStddevZ = process.ctppsBeamParametersESSource.vtxStddevZ
 
   # do not apply vertex smearing again
   process.ctppsBeamParametersESSource.vtxStddevX = 0
@@ -168,29 +193,24 @@ if MC:
   process.ctppsBeamParametersESSource.vtxStddevZ = 0
 
   # undo CMS vertex shift
-  #process.ctppsBeamParametersESSource.vtxOffsetX45 = +0.2475 * 1E-1
-  #process.ctppsBeamParametersESSource.vtxOffsetY45 = -0.6924 * 1E-1
-  #process.ctppsBeamParametersESSource.vtxOffsetZ45 = -8.1100 * 1E-1
-  process.ctppsBeamParametersESSource.vtxOffsetX45 = +0.2476 * 1E-1
-  process.ctppsBeamParametersESSource.vtxOffsetY45 = -0.6920 * 1E-1
-  process.ctppsBeamParametersESSource.vtxOffsetZ45 = -8.77500 * 1E-1
+  process.ctppsBeamParametersESSource.vtxOffsetX45 = +0.024755 
+  process.ctppsBeamParametersESSource.vtxOffsetY45 = -0.069233
+  process.ctppsBeamParametersESSource.vtxOffsetZ45 = -0.82054
 
   # define alignment
   #process.ctppsRPAlignmentCorrectionsDataESSourceXML.MisalignedFiles = ["test-Finn/alignment.xml"]
   #process.ctppsRPAlignmentCorrectionsDataESSourceXML.RealFiles = ["test-Finn/alignment.xml"]
-  process.ctppsRPAlignmentCorrectionsDataESSourceXML.MisalignedFiles = ["alignment.xml"]
-  process.ctppsRPAlignmentCorrectionsDataESSourceXML.RealFiles = ["alignment.xml"]
 
   # update reco settings
-  process.totemRPUVPatternFinder.tagRecHit = cms.InputTag('ctppsDirectProtonSimulation')
-  process.ctppsPixelLocalTracks.label = "ctppsDirectProtonSimulation"
-  process.ctppsLocalTrackLiteProducer.includeDiamonds = False
+  #process.totemRPUVPatternFinder.tagRecHit = cms.InputTag('ctppsDirectProtonSimulation')
+  #process.ctppsPixelLocalTracks.label = "ctppsDirectProtonSimulation"
+  #process.ctppsLocalTrackLiteProducer.includeDiamonds = False
 
   #def UseCrossingAngle(xangle):
   #  process.ctppsLHCInfoESSource.xangle = xangle
   #  process.ctppsBeamParametersESSource.halfXangleX45 = xangle * 1E-6
   #  process.ctppsBeamParametersESSource.halfXangleX56 = xangle * 1E-6
-  #
+
   #UseCrossingAngle(150)
 
 ##Global tags from here:https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECDataMC
@@ -316,22 +336,94 @@ process.slimmedJetsJetId = cms.EDFilter("PFJetIDSelectionFunctorFilter",
                                            filter = cms.bool(True)
                                            )
 
+#################### P R E F I R I N G ####################
+from PhysicsTools.PatUtils.l1ECALPrefiringWeightProducer_cfi import l1ECALPrefiringWeightProducer
+process.prefiringweight = l1ECALPrefiringWeightProducer.clone(
+      TheJets = cms.InputTag(COLLECTIONFORIDAK8) #this should be the slimmedJets collection with up to date JECs !
+      , DataEra = cms.string("2017BtoF") 
+      , UseJetEMPt = cms.bool(False)
+      , PrefiringRateSystematicUncty = cms.double(0.2)
+      , SkipWarnings = False)
+
 
 from RecoEgamma.EgammaTools.EgammaPostRecoTools import setupEgammaPostRecoSeq
 setupEgammaPostRecoSeq(process,
                        runVID=True, #saves CPU time by not needlessly re-running VID, if you want the Fall17V2 IDs, set this to True or remove (default is True)
                        era='2017-Nov17ReReco')  
 
+###################   M E T   C O R R     #################
+
+# MET
+if MC:
+   process.genMet = cms.EDProducer("GenMETExtractor",
+         metSource = cms.InputTag("slimmedMETs", "", "@skipCurrentProcess")
+         )
+
+# Raw MET
+process.uncorrectedMet = cms.EDProducer("RecoMETExtractor",
+      correctionLevel = cms.string('raw'),
+      metSource = cms.InputTag("slimmedMETs", "", "@skipCurrentProcess")
+      )
+
+# Raw PAT MET
+from PhysicsTools.PatAlgos.tools.metTools import addMETCollection
+addMETCollection(process, labelName="uncorrectedPatMet", metSource="uncorrectedMet")
+if MC:
+   process.uncorrectedPatMet.genMETSource = cms.InputTag('genMet')
+else:
+   process.uncorrectedPatMet.addGenMET = False
+
+#Type-1 correction
+process.Type1CorrForNewJEC = cms.EDProducer("PATPFJetMETcorrInputProducer",
+      src = cms.InputTag("selectedPatJetsAK4PFCHS"),
+      jetCorrLabel = cms.InputTag("L3Absolute"),
+      jetCorrLabelRes = cms.InputTag("L2L3Residual"),
+      offsetCorrLabel = cms.InputTag("L1FastJet"),
+      skipEM = cms.bool(True),
+      skipEMfractionThreshold = cms.double(0.9),
+      skipMuonSelection = cms.string('isGlobalMuon | isStandAloneMuon'),
+      skipMuons = cms.bool(True),
+      type1JetPtThreshold = cms.double(15.0)
+      )
+if MC:
+   process.slimmedMETsNewJEC = cms.EDProducer('CorrectedPATMETProducer',
+         src = cms.InputTag('uncorrectedPatMet'),
+         srcCorrections = cms.VInputTag(cms.InputTag('Type1CorrForNewJEC', 'type1'))
+         )
+else:
+   process.slimmedMETsNewJEC = cms.EDProducer('CorrectedPATMETProducer',
+         src = cms.InputTag('uncorrectedPatMet'),
+         srcCorrections = cms.VInputTag(cms.InputTag('Type1CorrForNewJEC', 'type1')),
+         applyType2Corrections = cms.bool(False)
+         )
+
+if MC:
+   process.shiftedMETCorrModuleForSmearedJets = cms.EDProducer('ShiftedParticleMETcorrInputProducer',
+         srcOriginal = cms.InputTag("selectedPatJetsAK4PFCHS"),
+         srcShifted = cms.InputTag(COLLECTIONFORIDAK4)
+         )
+   process.slimmedMETsSmeared = cms.EDProducer('CorrectedPATMETProducer',
+         src = cms.InputTag('slimmedMETsNewJEC'),
+         srcCorrections = cms.VInputTag(cms.InputTag('shiftedMETCorrModuleForSmearedJets'))
+         )
+
+if MC:
+   METCollection="slimmedMETsSmeared"
+else:
+   METCollection="slimmedMETsNewJEC"
+
 
 process.demo = cms.EDAnalyzer('Ntupler')
 # Select data or MC - this controls which jet corrections are used and whether PU reweighting info is filled                           
 process.demo.isMC = cms.bool(MC)
-process.demo.isSignalMC = cms.bool(False)
+process.demo.isSignalMC = cms.bool(True)
 process.demo.year = cms.int32(2017)
-process.demo.era = cms.string(options.era)
-process.demo.isInteractive = cms.bool(bool(options.interactive))
+process.demo.era = cms.string('C')
+process.demo.isInteractive = cms.bool(True)
+#process.demo.ppsRecoProtonSingleRPTag = cms.InputTag("ctppsProtons", "singleRP")
+#process.demo.ppsRecoProtonMultiRPTag  = cms.InputTag("ctppsProtons", "multiRP")
 #pileupName="WJetsToLNu_2J_TuneCP5_13TeV_amcatnloFXFX_pythia8"
-process.demo.mcName=cms.string("h_pileup_"+options.pileupName)
+process.demo.mcName=cms.string("input_Event/N_TrueInteractions")
 
 #from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
 #switchOnVIDElectronIdProducer(process,DataFormat.MiniAOD)
@@ -339,11 +431,12 @@ process.demo.mcName=cms.string("h_pileup_"+options.pileupName)
 #for idmod in my_id_modules:
 #    setupAllVIDIdsInModule(process,idmod,setupVIDElectronSelection)
 
-from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
-runMetCorAndUncFromMiniAOD(process,
-                           isData= not MC
-                           )
 
+
+#from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
+#runMetCorAndUncFromMiniAOD(process,
+#                           isData= not MC
+#                           )
 
 
 process.load("SlimmedNtuple.TotalEvents.CfiFile_cfi")
@@ -373,14 +466,21 @@ process.ecalBadCalibReducedMINIAODFilter = cms.EDFilter(
 
 
 process.dump=cms.EDAnalyzer('EventContentAnalyzer')
+
+# Output
+#process.TFileService = cms.Service("TFileService",
+#                                             fileName = cms.string("out.root")
+#                                             )
+
 #Update for MET filter here: https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2#How_to_run_ecal_BadCalibReducedM
 if MC:
     process.p = cms.Path(
         process.totalEvents*
         process.hltFilter*
         process.metFilterMC*
+        #process.METFilter*
         process.ecalBadCalibReducedMINIAODFilter*
-        process.fullPatMetSequence*
+        #process.fullPatMetSequence*
         process.egammaPostRecoSeq*
         #process.egmGsfElectronIDSequence*
         process.slimmedAK8JetsSmeared*
@@ -388,6 +488,13 @@ if MC:
         process.slimmedAK4JetsSmeared*
         process.slimmedJetsJetId*
         process.beamDivergenceVtxGenerator
+        *process.genMet
+        *process.uncorrectedMet
+        *process.uncorrectedPatMet
+        *process.Type1CorrForNewJEC
+        *process.slimmedMETsNewJEC
+        *process.shiftedMETCorrModuleForSmearedJets
+        *process.slimmedMETsSmeared
         * process.ctppsDirectProtonSimulation
         * process.totemRPUVPatternFinder
         * process.totemRPLocalTrackFitter
@@ -395,6 +502,7 @@ if MC:
         * process.ctppsLocalTrackLiteProducer
         #* process.dump
         * process.ctppsProtons
+        *process.prefiringweight
         *process.demo
         )
     
@@ -402,15 +510,23 @@ else:
     process.p = cms.Path(
         process.hltFilter*
         process.metFilter*
+        #process.METFilter*
         #process.totalEvents*
         process.ecalBadCalibReducedMINIAODFilter*
-        process.fullPatMetSequence*
+        #process.fullPatMetSequence*
         #process.egmGsfElectronIDSequence*
         process.egammaPostRecoSeq*
         #process.dump*
         process.slimmedJetsAK8JetId*
         process.slimmedJetsJetId*
         process.totemRPUVPatternFinder
+        *process.genMet
+        *process.uncorrectedMet
+        *process.uncorrectedPatMet
+        *process.Type1CorrForNewJEC
+        *process.slimmedMETsNewJEC
+        *process.shiftedMETCorrModuleForSmearedJets
+        *process.slimmedMETsSmeared
         * process.totemRPLocalTrackFitter
         * process.ctppsDiamondRecHits
         * process.ctppsDiamondLocalTracks
@@ -426,6 +542,7 @@ else:
 #        process.ctppsLocalTrackLiteProducer *
 #        process.ctppsProtons *
 #        #process.dump#*
+        *process.prefiringweight
         *process.demo
         )
 

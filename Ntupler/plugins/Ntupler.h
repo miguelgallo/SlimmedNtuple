@@ -26,6 +26,7 @@
 
 #include <iostream>       // std::cout
 #include <string>         // std::string
+#include <vector>        
 
 
 // user include files
@@ -91,7 +92,7 @@ private:
   //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
   bool isJetLepton(double,double);
   bool isJetLeptonAK8(double,double);
-  double calculateJERFactor(double,double,double,double,double,bool);
+  std::vector<double> calculateJERFactor(double,double,double,double,double,bool);
 
   // ----------member data ---------------------------
   boost::shared_ptr<FactorizedJetCorrector> jecAK8_;
@@ -114,6 +115,11 @@ private:
   //edm::EDGetTokenT<edm::View<reco::GsfElectron>> electron_token_;
   edm::EDGetTokenT<edm::View<pat::PackedCandidate>> pfcand_token_;
   edm::EDGetTokenT<GenEventInfoProduct> mcweight_token_;
+
+  //PREFIRING
+  edm::EDGetTokenT< double > prefweight_token;
+  edm::EDGetTokenT< double > prefweightup_token;
+  edm::EDGetTokenT< double > prefweightdown_token;
 
   //edm::EDGetToken electronsMiniAODToken_;
   // ID decisions objects
@@ -139,6 +145,11 @@ private:
   std::vector<float> * muon_iso_;
   std::vector<float> * muon_dxy_;
   std::vector<float> * muon_dz_;
+  std::vector<float> * muon_trackerLayersWithMeasurement_;
+
+  std::vector<float> * prefiring_weight_;
+  std::vector<float> * prefiring_weight_up_;
+  std::vector<float> * prefiring_weight_down_;
 
   std::vector<float> * electron_pt_;
   std::vector<float> * electron_eta_;
@@ -150,16 +161,37 @@ private:
   std::vector<float> * electron_pz_;
   std::vector<float> * electron_e_;
   std::vector<float> * electron_charge_;
+  std::vector<float> * electron_corr_;
+ 
+  std::vector<float> * electron_ecalTrkEnPostCorr_; 
+  std::vector<float> * electron_ecalTrkEnErrPostCorr_;
+  std::vector<float> * electron_ecalTrkEnPreCorr_;
+  std::vector<float> * electron_energyScaleUp_;
+  std::vector<float> * electron_energyScaleDown_;
+  std::vector<float> * electron_energySigmaUp_;
+  std::vector<float> * electron_energySigmaDown_;
 
+  float * calo_met_;
   float * met_;
   float * met_x_;
   float * met_y_;
   float * met_phi_;
-
+  float * met_ptJER_Up_;
+  float * met_ptJER_Down_;
+  float * met_phiJER_Up_;
+  float * met_phiJER_Down_;
+  float * met_ptJES_Up_;
+  float * met_ptJES_Down_;
+  float * met_phiJES_Up_;
+  float * met_phiJES_Down_;
+  
   int * num_bjets_ak8_;
   int * num_bjets_ak4_;
   int * num_jets_ak4_;
 
+  std::vector<float> * jet_cjer_;
+  std::vector<float> * jet_cjer_up_;
+  std::vector<float> * jet_cjer_down_;
   std::vector<float> * jet_pt_;
   std::vector<float> * jet_energy_;
   std::vector<float> * jet_phi_;
@@ -183,6 +215,20 @@ private:
 
   std::vector<float> * gen_W_pt_;
   std::vector<float> * gen_W_charge_;
+
+  std::vector<float> * gen_muon_pt_;
+  std::vector<float> * gen_muon_eta_;
+  std::vector<float> * gen_muon_phi_;
+  std::vector<float> * gen_muon_charge_;
+  std::vector<float> * gen_muon_mass_;
+  std::vector<float> * gen_muon_energy_;
+
+  std::vector<float> * gen_electron_pt_;
+  std::vector<float> * gen_electron_eta_;
+  std::vector<float> * gen_electron_phi_;
+  std::vector<float> * gen_electron_charge_;
+  std::vector<float> * gen_electron_mass_;
+  std::vector<float> * gen_electron_energy_;
 
   std::vector<float> * gen_proton_px_;
   std::vector<float> * gen_proton_py_;
