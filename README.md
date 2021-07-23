@@ -1,4 +1,4 @@
-# Semi leptonic WW prodution - A guide to Ntuple production
+# WW - Semi leptonic production - A guide to create your Ntuple generator 
 
 ## Setting the workspace 
 
