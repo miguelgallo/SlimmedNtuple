@@ -55,4 +55,4 @@ cmsRun test_acceptance_cfg.py
 
 With everything set and done as explained in this tutorial, one should be able to run the script *Ntupler/python/ConfFile_cfg_2017.py* and run the Ntuple generator for the WW semi leptonic analysis
 
-**PS.: Remember to change my addresses to the one using this tutorial at *Ntupler/python/ConfFile_cfg_2017.py* and *Ntupler/plugins/Ntupler.cc*, since the SlimmeNtuple folder are being installed from my fork at GitHub**
+**PS.: Remember to change my addresses to the one using this tutorial at *Ntupler/python/ConfFile_cfg_2017.py* and *Ntupler/plugins/Ntupler.cc*, since the SlimmeNtuple folder are being installed from my GitHub**
