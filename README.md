@@ -42,7 +42,7 @@ cd ..
 scram b -j8
 ```
 
-Make a test folder just to see if everything's working fine
+Make a test folder just to see if everything's working fine with the proton direct simulation package
 
 ```
 mkdir test
