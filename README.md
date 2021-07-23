@@ -13,7 +13,7 @@ cmsenv
 
 Install all additional packages that are not included in the $CMSSW_RELEASE_BASE
 
-*PS.: The consecutive* scram b -j8 *commands are being made just to check each package installation*
+**PS.: The consecutive *scram b -j8* commands are being made just to check each package installation**
 
 ```
 git cms-init
@@ -54,3 +54,5 @@ cmsRun test_acceptance_cfg.py
 ```
 
 With everything set and done as explained in this tutorial, one should be able to run the script *Ntupler/python/ConfFile_cfg_2017.py* and run the Ntuple generator for the WW semi leptonic analysis
+
+**PS.: Remember to change my addresses to the one using this tutorial at *Ntupler/python/ConfFile_cfg_2017.py* and *Ntupler/plugins/Ntupler.cc***
