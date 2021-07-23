@@ -13,7 +13,7 @@ cmsenv
 
 Install all additional packages that are not included in the $CMSSW_RELEASE_BASE
 
-**PS.: The consecutive *scram b -j8* commands are being made just to check each package installation**
+**PS.: The consecutive *scram b -j8* commands are being made just to check each package installation, only the last one is truly necessary**
 
 ```
 git cms-init
