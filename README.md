@@ -24,8 +24,8 @@ scram b -j8
 git clone git@github.com:miguelgallo/SlimmedNtuple.git SlimmedNtuple
 cd SlimmedNtuple
 git checkout CMSSW_10_6_x-FatJetMiniAOD
-scram b -j8
 cd ..
+scram b -j8
 
 git cms-addpkg RecoEgamma/EgammaTools
 git clone https://github.com/cms-egamma/EgammaPostRecoTools.git
