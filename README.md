@@ -13,8 +13,6 @@ cmsenv
 
 Install all additional packages that are not included in the $CMSSW_RELEASE_BASE
 
-**PS.: The consecutive *scram b -j8* commands are being made just to check each package installation, only the last one is truly necessary**
-
 ```
 git cms-init
 git cms-merge-topic cms-egamma:EgammaPostRecoTools
@@ -25,20 +23,18 @@ git clone git@github.com:miguelgallo/SlimmedNtuple.git SlimmedNtuple
 cd SlimmedNtuple
 git checkout CMSSW_10_6_x-FatJetMiniAOD
 cd ..
-scram b -j8
 
 git cms-addpkg RecoEgamma/EgammaTools
 git clone https://github.com/cms-egamma/EgammaPostRecoTools.git
 mv EgammaPostRecoTools/python/EgammaPostRecoTools.py RecoEgamma/EgammaTools/python/
-scram b -j8
 
 git clone git@github.com:cms-jet/JetToolbox.git JMEAnalysis/JetToolbox -b jetToolbox_102X_v3
-scram b -j8
 
 git clone https://github.com/jan-kaspar/proton_simulation_validation.git
 cd proton_simulation_validation
 git checkout 9b2cff77711484e90c2323008eedc8c717cfcc41
 cd ..
+
 scram b -j8
 ```
 
