@@ -24,6 +24,11 @@ cd SlimmedNtuple
 git checkout CMSSW_10_6_x-FatJetMiniAOD
 cd ..
 
+git-cms-addpkg PhysicsTools/PatUtils 
+cd PhysicsTools/PatUtils/data/
+wget --no-check-certificate https://github.com/cms-data/PhysicsTools-PatUtils/raw/master/L1PrefiringMaps.root 
+cd ../../..
+
 git cms-addpkg RecoEgamma/EgammaTools
 git clone https://github.com/cms-egamma/EgammaPostRecoTools.git
 mv EgammaPostRecoTools/python/EgammaPostRecoTools.py RecoEgamma/EgammaTools/python/
