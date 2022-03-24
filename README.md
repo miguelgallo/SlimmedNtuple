@@ -17,7 +17,6 @@ Install all additional packages that are not included in the $CMSSW_RELEASE_BASE
 git cms-init
 git cms-merge-topic cms-egamma:EgammaPostRecoTools
 git cms-addpkg RecoMET/METFilters
-scram b -j8
 
 git clone git@github.com:miguelgallo/SlimmedNtuple.git SlimmedNtuple
 cd SlimmedNtuple
