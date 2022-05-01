@@ -8,16 +8,16 @@ import FWCore.ParameterSet.Config as cms
 MC = True
 DATA = not MC
 
-Run2_2017 = True
+Run2_2017 = False
 preTS2_2017 = False
-postTS2_2017 = True
+postTS2_2017 = False
 
 Run2_2018 = not Run2_2017
-preTS1_2018 = False
+preTS1_2018 = True
 TS1_TS2_2018 = False
 postTS2_2018 = False
 
-ERA = 'C'
+ERA = 'B'
 
 if Run2_2017:
   if MC and preTS2_2017:
@@ -27,6 +27,8 @@ if Run2_2017:
     profile.LoadConfig(process)
     profile.config.SetDefaults(process)
     process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+    process.load("Validation.CTPPS.simu_config.year_2017_preTS2_cff")
+    process.load("direct_simu_reco_cff")
 
   if MC and postTS2_2017:
     sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2017_postTS2/')
@@ -35,6 +37,8 @@ if Run2_2017:
     profile.LoadConfig(process)
     profile.config.SetDefaults(process)
     process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+    process.load("Validation.CTPPS.simu_config.year_2017_postTS2_cff")
+    process.load("direct_simu_reco_cff")
 
   if DATA:
     from Configuration.Eras.Era_Run2_2017_cff import *
@@ -42,12 +46,15 @@ if Run2_2017:
 
 if Run2_2018:
   if MC and preTS1_2018:
-    sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2018_preTS1/')
+    #sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2018_preTS1/')
+    sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2018/')
     import direct_simu_reco_cff as profile
     process = cms.Process('CTPPSTest', profile.era)
     profile.LoadConfig(process)
     profile.config.SetDefaults(process)
     process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+    process.load("Validation.CTPPS.simu_config.year_2018_cff")
+    process.load("direct_simu_reco_cff")
 
   if MC and TS1_TS2_2018:
     sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2018_TS1_TS2/')
@@ -56,6 +63,8 @@ if Run2_2018:
     profile.LoadConfig(process)
     profile.config.SetDefaults(process)
     process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+    process.load("Validation.CTPPS.simu_config.year_2018_cff")
+    process.load("direct_simu_reco_cff")
 
   if MC and postTS2_2018:
     sys.path.insert(0, '/afs/cern.ch/user/m/malvesga/work/ProtonRecon/TEST/CMSSW_10_6_20/src/proton_simulation_validation/settings/2018_postTS2/')
@@ -64,6 +73,8 @@ if Run2_2018:
     profile.LoadConfig(process)
     profile.config.SetDefaults(process)
     process.load("CalibPPS.ESProducers.ctppsBeamParametersESSource_cfi")
+    process.load("Validation.CTPPS.simu_config.year_2018_cff")
+    process.load("direct_simu_reco_cff")
 
   if DATA:
     from Configuration.Eras.Era_Run2_2018_cff import *
@@ -112,8 +123,8 @@ process.options   = cms.untracked.PSet(
 process.MessageLogger.cerr.threshold = ''
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
-#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 if MC:
   process.source = cms.Source("PoolSource",
@@ -129,7 +140,8 @@ if MC:
 if DATA and Run2_2017:
   process.source = cms.Source("PoolSource",
       fileNames = cms.untracked.vstring(
-        'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/MINIAOD/UL2017_MiniAODv2-v1/140000/11978CB5-D2C7-7E42-A568-80C68231F039.root'
+        #'root://cms-xrd-global.cern.ch//store/data/Run2017C/SingleMuon/MINIAOD/UL2017_MiniAODv2-v1/140000/11978CB5-D2C7-7E42-A568-80C68231F039.root'
+        'root://cms-xrd-global.cern.ch//store/data/Run2017B/SingleElectron/MINIAOD/31Mar2018-v1/30000/AC1A4B95-0438-E811-B60D-008CFAE452E0.root'
       )
   )
 
@@ -411,7 +423,12 @@ process.demo.era = cms.string(ERA)
 process.demo.isInteractive = cms.bool(True)
 #process.demo.ppsLocalTrackTag = cms.InputTag("ctppsLocalTrackLiteProducer")
 #pileupName="WJetsToLNu_2J_TuneCP5_13TeV_amcatnloFXFX_pythia8"
-process.demo.mcName=cms.string("input_Event/N_TrueInteractions")
+process.demo.ppsRecoProtonSingleRPTag = cms.InputTag("ctppsProtons", "singleRP")
+process.demo.ppsRecoProtonMultiRPTag  = cms.InputTag("ctppsProtons", "multiRP")
+if Run2_2017:
+  process.demo.mcName=cms.string("input_Event/N_TrueInteractions")
+if Run2_2018:
+  process.demo.mcName=cms.string("pileup")
 
 #from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
 #switchOnVIDElectronIdProducer(process,DataFormat.MiniAOD)
@@ -505,7 +522,7 @@ if Run2_2017:
         #* process.ctppsDiamondLocalTracks
         #* process.ctppsPixelLocalTracks
         #* process.ctppsLocalTrackLiteProducer
-        * process.ctppsProtons
+        #* process.ctppsProtons
 #        process.totemRPUVPatternFinder *
 #        process.totemRPLocalTrackFitter *
 #        process.ctppsDiamondRecHits *
