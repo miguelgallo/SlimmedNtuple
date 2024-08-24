@@ -21,87 +21,63 @@
 #include <memory>
 #include "TTree.h"
 #include "TH2F.h"
+#include "TRandom3.h"
+#include "TLorentzVector.h"
+
+#include <iostream>       // std::cout
+#include <string>         // std::string
+#include <vector>        
+
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-//#include "FWCore/Framework/interface/one/EDAnalyzer.h"
-//#include "FWCore/Framework/interface/stream/EDAnalyzer.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
-
+#include "FWCore/Framework/interface/one/EDAnalyzer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include <DataFormats/MuonReco/interface/Muon.h>
-#include "DataFormats/MuonReco/interface/MuonSelectors.h"
-//#include <DataFormats/PatCandidates/interface/Muon.h>
-#include "DataFormats/VertexReco/interface/Vertex.h"
-#include "DataFormats/VertexReco/interface/VertexFwd.h"
+
+#include "CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+#include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
+#include "JetMETCorrections/Modules/interface/JetResolution.h"
+#include "CondFormats/JetMETObjects/interface/JetResolutionObject.h"
+#include "CondFormats/RunInfo/interface/LHCInfo.h"
+#include "CondFormats/DataRecord/interface/LHCInfoRcd.h"
+
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+#include "DataFormats/CTPPSReco/interface/CTPPSLocalTrackLite.h"
+#include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
+#include "DataFormats/ProtonReco/interface/ForwardProton.h"
+
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
-#include <iostream>
-
-#include "DataFormats/TrackReco/interface/Track.h"
-#include "DataFormats/TrackReco/interface/TrackFwd.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "TLorentzVector.h"
-
-#include "RecoVertex/AdaptiveVertexFit/interface/AdaptiveVertexFitter.h"
-#include "RecoVertex/KalmanVertexFit/interface/KalmanVertexFitter.h"
-
-
-#include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
-//#include "TrackingTools/TransientTrack/interface/GsfTransientTrack.h"
-#include "TrackingTools/Records/interface/TransientTrackRecord.h"
-#include "TrackingTools/TrajectoryState/interface/TrajectoryStateClosestToPoint.h"
-
-#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
-#include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 #include "HLTrigger/HLTcore/interface/HLTPrescaleProvider.h"
 
-//For Electrons
-#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
-#include "DataFormats/PatCandidates/interface/Electron.h"
-#include "DataFormats/Common/interface/ValueMap.h"
-#include "DataFormats/PatCandidates/interface/VIDCutFlowResult.h"
-#include "DataFormats/EgammaCandidates/interface/ConversionFwd.h"
-#include "DataFormats/EgammaCandidates/interface/Conversion.h"
-#include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
-
-//TOTEM reco
-#include "DataFormats/Common/interface/DetSetVector.h"
-#include "DataFormats/CTPPSReco/interface/TotemRPLocalTrack.h"
-#include "DataFormats/CTPPSReco/interface/TotemRPUVPattern.h"
-#include "DataFormats/CTPPSReco/interface/TotemRPCluster.h"
-#include "DataFormats/CTPPSDigi/interface/TotemRPDigi.h"
-#include "DataFormats/CTPPSDigi/interface/TotemVFATStatus.h"
-#include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
-
-#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "DataFormats/PatCandidates/interface/Jet.h"
-
-//#include "shared_track.h"
-//#include "shared_alignment.h"
-//#include "shared_reconstruction.h"
-//#include "shared_fill_info.h"
-
-#include "track_lite.h"
-#include "alignment.h"
-#include "fill_info.h"
-#include "proton_reconstruction.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
-//#include <FWCore/Framework/interface/ESHandle.h>
+#include "DataFormats/Math/interface/deltaPhi.h"
+#include "CalculatePzNu.hpp"
+
+#include "Roccor/RoccoR.h"
 
 //
 // class declaration
 //
 
-class Ntupler : public edm::EDAnalyzer {
+class Ntupler : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
       explicit Ntupler(const edm::ParameterSet&);
       ~Ntupler();
@@ -113,53 +89,59 @@ private:
   virtual void beginJob() override;
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
-  virtual void endRun(edm::Run const &, edm::EventSetup const&) override;
-  virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-  bool GetTrigger(const edm::Event&,const edm::EventSetup&);
-  void GetProtons(const edm::Event&);
-  void GetMC(const edm::Event&);
-  void GetMuons(const edm::Event&,reco::VertexRef,edm::ESHandle<TransientTrackBuilder>&,std::vector<reco::TransientTrack>&,std::vector<uint>&,std::vector<reco::TransientTrack>,int&);
-  void GetElectrons(const edm::Event&,reco::VertexRef,edm::ESHandle<TransientTrackBuilder>&,std::vector<reco::TransientTrack>&,std::vector<reco::TransientTrack>&,std::vector<uint>&,std::vector<reco::TransientTrack>,int&);
-  void GetTracksPrimaryVertex(reco::VertexRef,std::vector<reco::TransientTrack>,std::vector<reco::TransientTrack>);
-  void GetMuonDistance(TransientVertex,std::vector<reco::TransientTrack>);
-  void GetElectronDistance(TransientVertex,std::vector<reco::TransientTrack>);
-  void GetTrackDistance(TransientVertex,std::vector<reco::TransientTrack>,std::vector<uint>,std::vector<uint>);
-  void GetJets(const edm::Event&);
+  //  virtual void endRun(edm::Run const &, edm::EventSetup const&) override;
+  //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
   bool isJetLepton(double,double);
-  bool FitLeptonVertex(TransientVertex&,std::vector<reco::TransientTrack>,std::vector<reco::TransientTrack>,std::vector<reco::TransientTrack>,string);
+  bool isJetLeptonAK8(double,double);
+  std::vector<double> calculateJERFactor(double,double,double,double,double,bool);
 
   // ----------member data ---------------------------
+  boost::shared_ptr<FactorizedJetCorrector> jecAK8_;
+  boost::shared_ptr<FactorizedJetCorrector> jecAK8_withL1_;
+  edm::EDGetTokenT<edm::View<pat::Jet>> jet_token_;
+  edm::EDGetTokenT<edm::View<pat::Jet>> jetAK8_token_;
+  edm::EDGetTokenT<edm::View<pat::Muon>> muon_token_;
+  edm::EDGetTokenT<std::vector<CTPPSLocalTrackLite> > pps_token_;
+  edm::EDGetTokenT<std::vector<reco::ForwardProton> > recoProtonsSingleRPToken_;
+  edm::EDGetTokenT<std::vector<reco::ForwardProton> > recoProtonsMultiRPToken_;
+  edm::EDGetTokenT<std::vector<reco::Vertex>> vertex_token_;
+  edm::EDGetTokenT<double> rho_token_;
+  edm::EDGetTokenT<edm::TriggerResults> hlt_token_;
+  edm::EDGetTokenT<std::vector< PileupSummaryInfo > > pu_token_;
+  edm::EDGetTokenT<reco::GenParticleCollection> gen_part_token_;
+  edm::EDGetTokenT<reco::GenJetCollection> gen_jet_token_;
+  edm::EDGetTokenT<pat::METCollection> met_token_;
+  edm::EDGetTokenT< bool >ecalBadCalibFilterUpdate_token;
+  edm::EDGetTokenT<edm::View<pat::Electron>> electron_token_;
+  //edm::EDGetTokenT<edm::View<reco::GsfElectron>> electron_token_;
+  edm::EDGetTokenT<edm::View<pat::PackedCandidate>> pfcand_token_;
+  edm::EDGetTokenT<GenEventInfoProduct> mcweight_token_;
+
+  //PREFIRING
+  edm::EDGetTokenT< double > prefweight_token;
+  edm::EDGetTokenT< double > prefweightup_token;
+  edm::EDGetTokenT< double > prefweightdown_token;
+  edm::EDGetTokenT< double > prefweightECAL_token;
+  edm::EDGetTokenT< double > prefweightupECAL_token;
+  edm::EDGetTokenT< double > prefweightdownECAL_token;
+  edm::EDGetTokenT< double > prefweightMuon_token;
+  edm::EDGetTokenT< double > prefweightupMuon_token;
+  edm::EDGetTokenT< double > prefweightdownMuon_token;
   
-  string fp0;
-  string fp1;
-  AlignmentResultsCollection alignmentCollection;
-  AlignmentResults *alignments;
-  unsigned int prev_run;
-  bool prev_pps;
-  TTree * tree_;
-  bool isMC;
-  bool isPPS;
-  string channel;
-  edm::LumiReWeighting *LumiWeights;
-  edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
+  //edm::EDGetToken electronsMiniAODToken_;
   // ID decisions objects
   edm::EDGetTokenT<edm::ValueMap<bool> > eleIdMapToken_;
-  // One example of full information about the cut flow
-  edm::EDGetTokenT<edm::ValueMap<vid::CutFlowResult> > eleIdFullInfoMapToken_;
-  HLTConfigProvider hltConfig_;
-  HLTPrescaleProvider hltPrescaleProvider_;
+  edm::EDGetTokenT<edm::ValueMap<bool> > eleIdMapToken_veto_;
 
-  TH1F * h_trueNumInteractions;
-  TH1F * h_mu_closest;
-  TH1F * h_mu_closest_chi2_10;
-  TH2F * h_mu_chi2_vs_closest;
-  TH1F * h_e_closest;
-  TH1F * h_e_closest_chi2_10;
-  TH2F * h_e_chi2_vs_closest;
-  TH1F * h_lepton_pt;
-  TH1F * h_jets_30;
-  TH1F * h_jets_25;
-  TH1F * h_jets_20;
+  std::string jerAK8chsName_res_ ;
+  std::string jerAK8chsName_sf_ ;
+  std::string jerAK4chsName_res_ ;
+  std::string jerAK4chsName_sf_ ;
+
+  TRandom3 * random;
+  RoccoR * rc;
+
+  TTree * tree_;
 
   std::vector<float> * muon_pt_;
   std::vector<float> * muon_eta_;
@@ -172,69 +154,194 @@ private:
   std::vector<float> * muon_iso_;
   std::vector<float> * muon_dxy_;
   std::vector<float> * muon_dz_;
+  std::vector<float> * muon_trackerLayersWithMeasurement_;
+  std::vector<float> * muon_Roccor_;
+  std::vector<float> * muon_deltaRoccor_;
+
+  std::vector<float> * prefiring_weight_;
+  std::vector<float> * prefiring_weight_up_;
+  std::vector<float> * prefiring_weight_down_;
+  std::vector<float> * prefiring_weight_ECAL_;
+  std::vector<float> * prefiring_weight_ECAL_up_;
+  std::vector<float> * prefiring_weight_ECAL_down_;
+  std::vector<float> * prefiring_weight_Muon_;
+  std::vector<float> * prefiring_weight_Muon_up_;
+  std::vector<float> * prefiring_weight_Muon_down_;
 
   std::vector<float> * electron_pt_;
   std::vector<float> * electron_eta_;
   std::vector<float> * electron_phi_;
+  std::vector<float> * electron_dxy_;
+  std::vector<float> * electron_dz_;
   std::vector<float> * electron_px_;
   std::vector<float> * electron_py_;
   std::vector<float> * electron_pz_;
   std::vector<float> * electron_e_;
   std::vector<float> * electron_charge_;
-  std::vector<bool> *electron_passip_;
-  std::vector<float> * electron_dxy_;
-  std::vector<float> * electron_dz_;
+  std::vector<float> * electron_corr_;
+ 
+  std::vector<float> * electron_ecalTrkEnPostCorr_; 
+  std::vector<float> * electron_ecalTrkEnErrPostCorr_;
+  std::vector<float> * electron_ecalTrkEnPreCorr_;
+  std::vector<float> * electron_energyScaleValue_;
+  std::vector<float> * electron_energyScaleUp_;
+  std::vector<float> * electron_energyScaleDown_;
+  std::vector<float> * electron_energySigmaValue_;
+  std::vector<float> * electron_energySigmaUp_;
+  std::vector<float> * electron_energySigmaDown_;
 
+  float * calo_met_;
+  float * met_;
+  float * met_x_;
+  float * met_y_;
+  float * met_phi_;
+  float * met_ptJER_Up_;
+  float * met_pxJER_Up_;
+  float * met_pyJER_Up_;
+  float * met_ptJER_Down_;
+  float * met_pxJER_Down_;
+  float * met_pyJER_Down_;
+  float * met_phiJER_Up_;
+  float * met_phiJER_Down_;
+  float * met_ptJES_Up_;
+  float * met_pxJES_Up_;
+  float * met_pyJES_Up_;
+  float * met_ptJES_Down_;
+  float * met_pxJES_Down_;
+  float * met_pyJES_Down_;
+  float * met_phiJES_Up_;
+  float * met_phiJES_Down_;
+  
+  int * num_bjets_ak8_;
+  int * num_bjets_ak4_;
+  int * num_jets_ak4_;
+
+  std::vector<float> * jet_cjer_;
+  std::vector<float> * jet_cjer_up_;
+  std::vector<float> * jet_cjer_down_;
   std::vector<float> * jet_pt_;
   std::vector<float> * jet_energy_;
   std::vector<float> * jet_phi_;
   std::vector<float> * jet_eta_;
+  std::vector<float> * jet_px_;
+  std::vector<float> * jet_py_;
+  std::vector<float> * jet_pz_;
+  std::vector<float> * jet_mass_;
+  std::vector<float> * jet_tau1_;
+  std::vector<float> * jet_tau2_;
+  std::vector<float> * jet_corrmass_;
+  std::vector<float> * jet_vertexz_;
+  std::vector<float> * jet_jer_res_;
+  std::vector<float> * jet_jer_sf_;
+  std::vector<float> * jet_jer_sfup_;
+  std::vector<float> * jet_jer_sfdown_;
 
-  std::vector<float> * allvertices_z_;
+  std::vector<float> * pps_track_x_;
+  std::vector<float> * pps_track_y_;
+  std::vector<int> * pps_track_rpid_;
 
-  int * vertex_ntracks_;
-  float * vertex_x_;
-  float * vertex_y_;
-  float * vertex_z_;
-  int * vertex_nvtxs_;
+  std::vector<float> * gen_W_pt_;
+  std::vector<float> * gen_W_charge_;
 
-  float * fvertex_x_;
-  float * fvertex_y_;
-  float * fvertex_z_;
-  float * fvertex_chi2ndof_;
-  int * fvertex_nltracks_p5mm_;
-  int * fvertex_ntracks_cms_p5mm_;
-  int * fvertex_ntracks_ts_p5mm_;
-  int * fvertex_ntracks_cms_p3mm_;
-  int * fvertex_ntracks_ts_p3mm_;
-  float * fvertex_closest_trk_cms_;
-  float * fvertex_closest_trk_ts_;
-  std::vector<float> * fvertex_tkdist_ts_p3mm_to_1p5mm_;
-  std::vector<float> * fvertex_tkdist_cms_p3mm_to_1p5mm_;
-  std::vector<float> * fvertex_tkpt_;
-  std::vector<float> * fvertex_tketa_;
-  std::vector<float> * muon_tkdist_;
-  std::vector<float> * muon_tkpt_;
-  std::vector<float> * electron_tkdist_;
-  std::vector<float> * electron_tkpt_;
+  std::vector<float> * gen_muon_pt_;
+  std::vector<float> * gen_muon_eta_;
+  std::vector<float> * gen_muon_phi_;
+  std::vector<float> * gen_muon_charge_;
+  std::vector<float> * gen_muon_mass_;
+  std::vector<float> * gen_muon_energy_;
 
-  //std::vector<float> * rp_tracks_xraw_;
-  std::vector<float> * rp_tracks_y_;
-  std::vector<float> * rp_tracks_x_;
-  std::vector<float> * rp_tracks_xi_;
-  std::vector<float> * rp_tracks_xi_unc_;
-  std::vector<float> * rp_tracks_detId_;
-  //float * mumu_mass_;
-  //float * mumu_rapidity_;
+  std::vector<float> * gen_electron_pt_;
+  std::vector<float> * gen_electron_eta_;
+  std::vector<float> * gen_electron_phi_;
+  std::vector<float> * gen_electron_charge_;
+  std::vector<float> * gen_electron_mass_;
+  std::vector<float> * gen_electron_energy_;
 
+  std::vector<float> * gen_proton_px_;
+  std::vector<float> * gen_proton_py_;
+  std::vector<float> * gen_proton_pz_;
+  std::vector<float> * gen_proton_energy_;
+  std::vector<float> * gen_proton_xi_;
+  std::vector<float> * gen_proton_t_;
 
+  std::vector<float> * proton_xi_;
+  std::vector<float> * proton_thy_;
+  std::vector<float> * proton_thx_;
+  std::vector<float> * proton_t_;
+  std::vector<int> * proton_ismultirp_;
+  std::vector<int> * proton_rpid_;
+  std::vector<int> * proton_arm_;
+
+  std::vector<float> * proton_time_;
+  std::vector<float> * proton_trackx1_;
+  std::vector<float> * proton_tracky1_;
+  std::vector<float> * proton_trackx2_;
+  std::vector<float> * proton_tracky2_;
+  std::vector<int> * proton_trackpixshift1_;
+  std::vector<int> * proton_trackpixshift2_;
+  std::vector<int> * proton_rpid1_;
+  std::vector<int> * proton_rpid2_;
+
+  std::vector<float> * gen_jet_pt_;
+  std::vector<float> * gen_jet_eta_;
+  std::vector<float> * gen_jet_phi_;
+  std::vector<float> * gen_jet_energy_;
+
+  std::vector<string> * hlt_;
 
   int * run_;
   long int * ev_;
   int * lumiblock_;
-  bool * ispps_;
-
-  //float * Tnpv_;
+  float * crossingAngle_;
+  float * betaStar_;
+  float * instLumi_;
+  int * nVertices_;
   float * pileupWeight_;
+  float * mc_pu_trueinteractions_;
+  float * mcWeight_;
+  int * pfcand_nextracks_;
+  int * pfcand_nextracks_noDRl_;
+
+  float * recoMWhad_;
+  float * recoMWlep_;
+  float * recoMWlep_metJER_Up_;
+  float * recoMWlep_metJER_Down_;
+  float * recoMWlep_metJES_Up_;
+  float * recoMWlep_metJES_Down_;
+  float * dphiWW_;
+  float * recoMWW_;
+  float * recoMWW_metJER_Up_;
+  float * recoMWW_metJER_Down_;
+  float * recoMWW_metJES_Up_;
+  float * recoMWW_metJES_Down_;
+  float * recoRapidityWW_;
+  float * recoWWpt_;
+  float * recoWWpt_metJER_Up_;
+  float * recoWWpt_metJER_Down_;
+  float * recoWWpt_metJES_Up_;
+  float * recoWWpt_metJES_Down_;
+  float * genWWpt_;
+  float * WLeptonicPt_;
+  float * WLeptonicPt_metJER_Up_;
+  float * WLeptonicPt_metJER_Down_;
+  float * WLeptonicPt_metJES_Up_;
+  float * WLeptonicPt_metJES_Down_;
+  float * WLeptonicPhi_;
+  float * WLeptonicEta_;
+
+  //bool * ecalBadCalFilter_;
+
+  HLTConfigProvider hltConfig_;
+  HLTPrescaleProvider hltPrescaleProvider_;
+  edm::LumiReWeighting *LumiWeights;
+
+  bool isMC;
+  bool isSignalMC;
+  bool isInteractive;
+  int year;
+  std::string era;
+  std::string mcName;
+
+  
 
 };

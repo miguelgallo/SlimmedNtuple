@@ -1,14 +1,15 @@
+import sys
 import FWCore.ParameterSet.Config as cms
 import os
 
-TFileService = cms.Service("TFileService", fileName = cms.string("SlimmedNtuple.root") )
+for arg in sys.argv[2:]:
+  opt = arg[0:arg.find("=")]
+  if opt=="outputName":
+    outputName = cms.string(arg[arg.find("=")+1:])
+
+#TFileService = cms.Service("TFileService", fileName = cms.string("SlimmedNtuple.root") )
+TFileService = cms.Service("TFileService", fileName = outputName )
 
 print os.getcwd()
 
-demo = cms.EDAnalyzer('Ntupler',
-                      ismc=cms.bool(False),
-                      ispps=cms.bool(False),
-                      channel=cms.string("mue"),
-                      alignment = cms.string("alignment_collection.out"),
-                      optics = cms.string('optics.root')
-                      )
+demo = cms.EDAnalyzer('Ntupler')
